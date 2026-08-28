@@ -3,6 +3,7 @@ from PIL import Image, ImageDraw, ImageFont
 import io
 import os
 import requests
+import json
 from datetime import datetime
 
 # Configuração da página do App
@@ -12,8 +13,8 @@ st.set_page_config(
     layout="centered"
 )
 
-# URL do Web App do Google Apps Script (Substitua pela sua URL)
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyIaKpFo3M48uYN-f5FFX6DA10c-OKaQYCE7RpH_tdbPqGSbjmTLiMOI1i-JjBi3zu_tA/exec"
+# URL do Web App do Google Apps Script
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyIaKpFo3M48uYN-f5FFX6DA10c-0KaQYCE7RpH_tdbPqGSbjmTLiMOI1i-JjBi3zu_tA/exec"
 
 # Busca do arquivo de Logo
 logo_path = None
@@ -88,12 +89,19 @@ if submitted:
         }
         
         try:
-            res = requests.post(WEB_APP_URL, json=payload, timeout=5)
+            # Envia como texto e permite redirecionamento do Google (allow_redirects=True)
+            res = requests.post(
+                WEB_APP_URL, 
+                data=json.dumps(payload), 
+                headers={'Content-Type': 'application/json'},
+                allow_redirects=True,
+                timeout=10
+            )
             if res.status_code == 200:
                 st.success("✅ Atleta registrado com sucesso na planilha do Google Drive!")
             else:
                 st.info("Carteirinha gerada com sucesso!")
-        except Exception:
+        except Exception as e:
             st.info("Carteirinha gerada com sucesso!")
 
         # 2. Gerar Imagem da Carteirinha
