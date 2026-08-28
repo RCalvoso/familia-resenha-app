@@ -29,7 +29,7 @@ st.title("Família Resenha F.C.")
 st.subheader("Gerador Oficial de Carteirinha Virtual de Sócio-Atleta")
 st.write("Preencha as informações abaixo para gerar sua carteirinha e baixar o arquivo PNG!")
 
-# Carregamento de Fontes
+# Carregamento de Fontes TrueType
 def load_font(size, bold=False):
     font_paths = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
@@ -62,7 +62,7 @@ with st.form("form_carteirinha"):
     with col2:
         camisa = st.text_input("Número da Camisa *", placeholder="Ex: 10")
         inicio = st.text_input("Temporada de Início", value="2026")
-        pe = st.selectbox("Pé Dominante", ["Destro", "Canhoto", "Ambidestro"])
+        pe = st.selectbox("Pé Dominante", ["Diestro", "Canhoto", "Ambidestro"])
         teor = st.slider("Teor Alcoólico na Resenha (%) 🍻", 0, 100, 75)
 
     foto_file = st.file_uploader("Foto do Atleta (Envie da Galeria ou Tire uma Foto)", type=["jpg", "png", "jpeg"])
@@ -74,7 +74,7 @@ if submitted:
     if not apelido or not camisa:
         st.error("Por favor, preencha pelo menos o Apelido e o Número da Camisa!")
     else:
-        # 1. Envio Form-Urlencoded sem permitir alteração de método em redirecionamento
+        # 1. Envio de Dados para o Google Sheets via Web App
         payload = {
             "data_cadastro": datetime.now().strftime("%d/%m/%Y %H:%M"),
             "nome": nome if nome else "N/I",
@@ -88,11 +88,8 @@ if submitted:
         }
         
         try:
-            # allow_redirects=False impede que o POST vire GET ao redirecionar
-            res = requests.post(WEB_APP_URL, data=payload, allow_redirects=False, timeout=10)
-            
-            # Status 302/200 no Google Apps Script indica envio executado com sucesso
-            if res.status_code in [200, 302]:
+            res = requests.post(WEB_APP_URL, data=payload, timeout=10)
+            if res.status_code in [200, 302] or "OK" in res.text:
                 st.success("✅ Atleta registrado com sucesso na planilha do Google Drive!")
             else:
                 st.warning(f"Carteirinha gerada! (Retorno: Código HTTP {res.status_code})")
@@ -116,7 +113,7 @@ if submitted:
             card.paste(logo_img, (20, 15), logo_img)
             text_start_x = 115
 
-        # Títulos
+        # Títulos do Cabeçalho
         draw.text((text_start_x, 22), "FAMÍLIA RESENHA F.C.", fill=(250, 204, 21), font=font_title)
         draw.text((text_start_x, 65), "CARTEIRINHA VIRTUAL DE SÓCIO-ATLETA", fill=(203, 213, 225), font=font_subtitle)
 
