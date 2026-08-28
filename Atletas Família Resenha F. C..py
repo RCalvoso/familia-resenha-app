@@ -3,7 +3,6 @@ from PIL import Image, ImageDraw, ImageFont
 import io
 import os
 import requests
-import json
 from datetime import datetime
 
 # Configuração da página do App
@@ -75,7 +74,7 @@ if submitted:
     if not apelido or not camisa:
         st.error("Por favor, preencha pelo menos o Apelido e o Número da Camisa!")
     else:
-        # 1. Envio Direto para o Google Sheets via API Web App
+        # 1. Envio de Formulário via POST
         payload = {
             "data_cadastro": datetime.now().strftime("%d/%m/%Y %H:%M"),
             "nome": nome if nome else "N/I",
@@ -89,8 +88,7 @@ if submitted:
         }
         
         try:
-            # Envia como payload bruto sem header de JSON para evitar bloqueio no Google
-            res = requests.post(WEB_APP_URL, data=json.dumps(payload), timeout=10)
+            res = requests.post(WEB_APP_URL, data=payload, timeout=10)
             if "OK" in res.text or res.status_code == 200:
                 st.success("✅ Atleta registrado com sucesso na planilha do Google Drive!")
             else:
