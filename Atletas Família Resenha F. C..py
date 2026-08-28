@@ -13,11 +13,14 @@ st.set_page_config(
     layout="centered"
 )
 
+# URL Limpa da Planilha do Google Sheets
+SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1GgmKgonnXOQ-jNpciGnxbm1MB25Q5kAMxF279Da9pFU/edit"
+
 # Conexão com Google Sheets
 conn = None
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
-except Exception as e:
+except Exception:
     conn = None
 
 # Busca do arquivo de Logo
@@ -69,7 +72,7 @@ with st.form("form_carteirinha"):
         camisa = st.text_input("Número da Camisa *", placeholder="Ex: 10")
         inicio = st.text_input("Temporada de Início", value="2026")
         pe = st.selectbox("Pé Dominante", ["Diestro", "Canhoto", "Ambidestro"])
-        teor = st.slider("Teor Alcoólico na Resenha (%) 🍻", 0, 100, 50)
+        teor = st.slider("Teor Alcoólico na Resenha (%) 🍻", 0, 100, 75)
 
     foto_file = st.file_uploader("Foto do Atleta (Envie da Galeria ou Tire uma Foto)", type=["jpg", "png", "jpeg"])
     
@@ -83,7 +86,7 @@ if submitted:
         # 1. Salvar dados na Planilha do Google Sheets
         if conn is not None:
             try:
-                existing_data = conn.read(ttl=0)
+                existing_data = conn.read(spreadsheet=SPREADSHEET_URL, ttl=0)
                 
                 new_row = pd.DataFrame([{
                     "Data Cadastro": datetime.now().strftime("%d/%m/%Y %H:%M"),
@@ -98,10 +101,10 @@ if submitted:
                 }])
                 
                 updated_df = pd.concat([existing_data, new_row], ignore_index=True)
-                conn.update(data=updated_df)
+                conn.update(spreadsheet=SPREADSHEET_URL, data=updated_df)
                 st.success("✅ Atleta registrado com sucesso na planilha do Google Drive!")
             except Exception as err:
-                st.warning(f"Carteirinha gerada! (Nota: Erro ao sincronizar com Google Sheets: {err})")
+                st.warning(f"Carteirinha gerada! (Nota ao gravar na planilha: {err})")
         else:
             st.info("Carteirinha gerada!")
 
@@ -151,16 +154,48 @@ if submitted:
         draw.text((620, 240), f"TEMPORADA INÍCIO: {inicio}", fill=(255, 255, 255), font=font_value)
         draw.text((620, 285), f"CIDADE/UF: {cidade_uf}", fill=(255, 255, 255), font=font_value)
 
-        # Barra do Teor Alcoólico
-        bx, by, bw, bh = 40, 475, W - 80, 110
+        # --- SEÇÃO DO TEOR ALCOÓLICO COM EFEITO 3D ---
+        bx, by, bw, bh = 40, 470, W - 80, 120
         draw.rectangle([bx, by, bx + bw, by + bh], fill=(30, 41, 59), outline=(51, 65, 85), width=2)
         
-        draw.text((bx + 20, by + 15), f"TEOR ALCOÓLICO NA RESENHA: {teor}% 🍻", fill=(250, 204, 21), font=font_label)
+        # Rótulo + Percentual no canto superior direito
+        draw.text((bx + 20, by + 12), "TEOR ALCOÓLICO NA RESENHA", fill=(250, 204, 21), font=font_label)
+        draw.text((bx + bw - 100, by + 12), f"{teor}%", fill=(250, 204, 21), font=font_label)
         
-        bar_w = int((bw - 40) * (teor / 100.0))
+        # Trilho de Fundo da Barra (Efeito de Cavidade Interna)
+        rx, ry, rw, rh = bx + 20, by + 50, bw - 40, 45
+        draw.rectangle([rx, ry, rx + rw, ry + rh], fill=(15, 23, 42), outline=(100, 116, 139), width=2)
+        
+        bar_w = int((rw - 6) * (teor / 100.0))
         if bar_w > 0:
-            bar_color = (34, 197, 94) if teor < 50 else (234, 179, 8) if teor < 80 else (239, 68, 68)
-            draw.rectangle([bx + 20, by + 50, bx + 20 + bar_w, by + 80], fill=bar_color)
+            # Definir cores base (Verde / Amarelo / Vermelho)
+            if teor < 50:
+                base_color = (34, 197, 94)      # Green
+                light_color = (134, 239, 172)   # Light Green
+                shadow_color = (21, 128, 61)    # Dark Green
+            elif teor < 80:
+                base_color = (234, 179, 8)      # Yellow
+                light_color = (253, 224, 71)    # Light Yellow
+                shadow_color = (161, 98, 7)     # Dark Yellow
+            else:
+                base_color = (239, 68, 68)      # Red
+                light_color = (252, 165, 165)   # Light Red
+                shadow_color = (185, 28, 28)    # Dark Red
+
+            # Desenha o bloco principal da barra
+            bx1, by1 = rx + 3, ry + 3
+            bx2, by2 = rx + 3 + bar_w, ry + rh - 3
+            draw.rectangle([bx1, by1, bx2, by2], fill=base_color)
+            
+            # Realce de Brilho 3D no topo (Metade superior)
+            mid_h = (by2 - by1) // 2
+            draw.rectangle([bx1, by1, bx2, by1 + mid_h], fill=light_color)
+            
+            # Sombra 3D na parte inferior
+            draw.rectangle([bx1, by1 + mid_h, bx2, by2], fill=shadow_color)
+            
+            # Linha de Destaque Interna no topo
+            draw.line([(bx1, by1), (bx2, by1)], fill=(255, 255, 255), width=2)
 
         # Exibição e Download
         st.image(card, caption=f"Carteirinha Virtual - {apelido}", use_container_width=True)
