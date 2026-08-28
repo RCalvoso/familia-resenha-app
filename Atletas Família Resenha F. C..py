@@ -14,25 +14,43 @@ st.set_page_config(
 )
 
 # Conexão com Google Sheets
+conn = None
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
-except Exception:
-    conn = None
+except Exception as e:
+    st.error(f"Erro ao conectar no Google Sheets: {e}")
 
-# Identificação e busca do arquivo de Logo (suporta "Logo.png", "logo.png", "logo.png.jfif")
+# Busca do arquivo de Logo
 logo_path = None
 for possible_name in ["Logo.png", "logo.png", "logo.png.jfif", "Logo.PNG"]:
     if os.path.exists(possible_name):
         logo_path = possible_name
         break
 
-# Exibir logo no topo da página do App
 if logo_path:
     st.image(logo_path, width=120)
 
 st.title("Família Resenha F.C.")
 st.subheader("Gerador Oficial de Carteirinha Virtual de Sócio-Atleta")
 st.write("Preencha as informações abaixo para gerar sua carteirinha e baixar o arquivo PNG!")
+
+# Carregar Fontes TrueType com suporte a acentuação
+def load_font(size, bold=False):
+    font_paths = [
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
+        "arial.ttf"
+    ]
+    for p in font_paths:
+        if os.path.exists(p):
+            return ImageFont.truetype(p, size)
+    return ImageFont.load_default()
+
+font_title = load_font(30, bold=True)
+font_subtitle = load_font(18, bold=True)
+font_label = load_font(18, bold=True)
+font_value = load_font(22, bold=False)
+font_badge = load_font(36, bold=True)
 
 # --- FORMULÁRIO DE CADASTRO DO JOGADOR ---
 with st.form("form_carteirinha"):
@@ -59,10 +77,11 @@ if submitted:
     if not apelido or not camisa:
         st.error("Por favor, preencha pelo menos o Apelido e o Número da Camisa!")
     else:
-        # 1. Salvar dados na Planilha do Google Sheets (se configurado)
+        # 1. Salvar dados na Planilha do Google Sheets
         if conn is not None:
             try:
-                existing_data = conn.read(worksheet="Página1", ttl=0)
+                # Tenta ler a aba existente
+                existing_data = conn.read(ttl=0)
                 
                 new_row = pd.DataFrame([{
                     "Data Cadastro": datetime.now().strftime("%d/%m/%Y %H:%M"),
@@ -77,10 +96,10 @@ if submitted:
                 }])
                 
                 updated_df = pd.concat([existing_data, new_row], ignore_index=True)
-                conn.update(worksheet="Página1", data=updated_df)
-                st.success("✅ Atleta registrado com sucesso na base de dados do time!")
-            except Exception:
-                st.info("Carteirinha gerada!")
+                conn.update(data=updated_df)
+                st.success("✅ Atleta registrado com sucesso na planilha do Google Drive!")
+            except Exception as err:
+                st.warning(f"Carteirinha gerada! (Nota: Erro ao sincronizar com Google Sheets: {err})")
         else:
             st.info("Carteirinha gerada!")
 
@@ -94,19 +113,18 @@ if submitted:
         draw.line([(0, 110), (W, 110)], fill=(234, 179, 8), width=5)
         draw.line([(0, H - 15), (W, H - 15)], fill=(234, 179, 8), width=3)
 
-        font_large = ImageFont.load_default()
-
         text_start_x = 30
         if logo_path:
             logo_img = Image.open(logo_path).convert("RGBA")
             logo_img = logo_img.resize((80, 80))
             card.paste(logo_img, (20, 15), logo_img)
-            text_start_x = 110
+            text_start_x = 115
 
-        draw.text((text_start_x, 25), "FAMÍLIA RESENHA F.C.", fill=(250, 204, 21), font=font_large)
-        draw.text((text_start_x, 65), "CARTEIRINHA VIRTUAL DE SÓCIO-ATLETA", fill=(203, 213, 225), font=font_large)
+        # Títulos do Cabeçalho
+        draw.text((text_start_x, 22), "FAMÍLIA RESENHA F.C.", fill=(250, 204, 21), font=font_title)
+        draw.text((text_start_x, 65), "CARTEIRINHA VIRTUAL DE SÓCIO-ATLETA", fill=(203, 213, 225), font=font_subtitle)
 
-        # Espaço e Renderização da Foto
+        # Foto
         px, py, pw, ph = 40, 140, 220, 270
         if foto_file:
             user_img = Image.open(foto_file).convert("RGB")
@@ -114,35 +132,35 @@ if submitted:
             card.paste(user_img, (px, py))
         else:
             draw.rectangle([px, py, px + pw, py + ph], fill=(30, 41, 59), outline=(234, 179, 8), width=3)
-            draw.text((px + 50, py + 120), "SEM FOTO", fill=(148, 163, 184), font=font_large)
+            draw.text((px + 50, py + 120), "SEM FOTO", fill=(148, 163, 184), font=font_label)
 
-        # Badge do Número da Camisa
+        # Número da Camisa
         cx, cy, cr = 200, 380, 45
         draw.ellipse([cx - cr, cy - cr, cx + cr, cy + cr], fill=(234, 179, 8), outline=(15, 23, 42), width=3)
-        draw.text((cx - 15, cy - 10), f"#{camisa}", fill=(15, 23, 42), font=font_large)
+        draw.text((cx - 25, cy - 20), f"#{camisa}", fill=(15, 23, 42), font=font_badge)
 
         # Informações do Jogador
-        draw.text((300, 140), f"APELIDO: {apelido.upper()}", fill=(250, 204, 21), font=font_large)
-        draw.text((300, 180), f"NOME: {nome if nome else 'Atleta Resenheiro'}", fill=(226, 232, 240), font=font_large)
+        draw.text((300, 135), f"APELIDO: {apelido.upper()}", fill=(250, 204, 21), font=font_title)
+        draw.text((300, 180), f"NOME: {nome if nome else 'Atleta Resenheiro'}", fill=(226, 232, 240), font=font_value)
         
-        draw.text((300, 240), f"PÉ DOMINANTE: {pe}", fill=(255, 255, 255), font=font_large)
-        draw.text((300, 280), f"DATA NASC.: {nascimento if nascimento else 'N/I'}", fill=(255, 255, 255), font=font_large)
+        draw.text((300, 240), f"PÉ DOMINANTE: {pe}", fill=(255, 255, 255), font=font_value)
+        draw.text((300, 285), f"DATA NASC.: {nascimento if nascimento else 'N/I'}", fill=(255, 255, 255), font=font_value)
         
-        draw.text((620, 240), f"TEMPORADA INÍCIO: {inicio}", fill=(255, 255, 255), font=font_large)
-        draw.text((620, 280), f"CIDADE/UF: {cidade_uf}", fill=(255, 255, 255), font=font_large)
+        draw.text((620, 240), f"TEMPORADA INÍCIO: {inicio}", fill=(255, 255, 255), font=font_value)
+        draw.text((620, 285), f"CIDADE/UF: {cidade_uf}", fill=(255, 255, 255), font=font_value)
 
         # Barra do Teor Alcoólico
         bx, by, bw, bh = 40, 475, W - 80, 110
         draw.rectangle([bx, by, bx + bw, by + bh], fill=(30, 41, 59), outline=(51, 65, 85), width=2)
         
-        draw.text((bx + 20, by + 15), f"TEOR ALCOÓLICO NA RESENHA: {teor}% 🍻", fill=(250, 204, 21), font=font_large)
+        draw.text((bx + 20, by + 15), f"TEOR ALCOÓLICO NA RESENHA: {teor}%", fill=(250, 204, 21), font=font_label)
         
         bar_w = int((bw - 40) * (teor / 100.0))
         if bar_w > 0:
             bar_color = (34, 197, 94) if teor < 50 else (234, 179, 8) if teor < 80 else (239, 68, 68)
             draw.rectangle([bx + 20, by + 50, bx + 20 + bar_w, by + 80], fill=bar_color)
 
-        # Exibição e Botão de Download
+        # Exibição e Download
         st.image(card, caption=f"Carteirinha Virtual - {apelido}", use_container_width=True)
         
         buf = io.BytesIO()
