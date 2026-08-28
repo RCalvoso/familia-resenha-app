@@ -13,7 +13,7 @@ st.set_page_config(
 )
 
 # URL do Web App do Google Apps Script (Substitua pela sua URL)
-https://script.google.com/macros/s/AKfycbyIaKpFo3M48uYN-f5FFX6DA10c-OKaQYCE7RpH_tdbPqGSbjmTLiMOI1i-JjBi3zu_tA/exec
+WEB_APP_URL = https://script.google.com/macros/s/AKfycbyIaKpFo3M48uYN-f5FFX6DA10c-OKaQYCE7RpH_tdbPqGSbjmTLiMOI1i-JjBi3zu_tA/exec
 
 # Busca do arquivo de Logo
 logo_path = None
