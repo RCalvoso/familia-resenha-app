@@ -89,20 +89,14 @@ if submitted:
         }
         
         try:
-            # Envia como texto e permite redirecionamento do Google (allow_redirects=True)
-            res = requests.post(
-                WEB_APP_URL, 
-                data=json.dumps(payload), 
-                headers={'Content-Type': 'application/json'},
-                allow_redirects=True,
-                timeout=10
-            )
-            if res.status_code == 200:
+            # Envia como payload bruto sem header de JSON para evitar bloqueio no Google
+            res = requests.post(WEB_APP_URL, data=json.dumps(payload), timeout=10)
+            if "OK" in res.text or res.status_code == 200:
                 st.success("✅ Atleta registrado com sucesso na planilha do Google Drive!")
             else:
-                st.info("Carteirinha gerada com sucesso!")
+                st.warning(f"Carteirinha gerada! (Retorno do Google: {res.text[:50]})")
         except Exception as e:
-            st.info("Carteirinha gerada com sucesso!")
+            st.warning(f"Carteirinha gerada! (Erro de conexão: {e})")
 
         # 2. Gerar Imagem da Carteirinha
         W, H = 1012, 638
