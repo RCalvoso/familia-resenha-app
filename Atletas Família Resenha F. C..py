@@ -71,7 +71,7 @@ with st.form("form_carteirinha"):
     with col2:
         camisa = st.text_input("Número da Camisa *", placeholder="Ex: 10")
         inicio = st.text_input("Temporada de Início", value="2026")
-        pe = st.selectbox("Pé Dominante", ["Diestro", "Canhoto", "Ambidestro"])
+        pe = st.selectbox("Pé Dominante", ["Destro", "Canhoto", "Ambidestro"])
         teor = st.slider("Teor Alcoólico na Resenha (%) 🍻", 0, 100, 75)
 
     foto_file = st.file_uploader("Foto do Atleta (Envie da Galeria ou Tire uma Foto)", type=["jpg", "png", "jpeg"])
