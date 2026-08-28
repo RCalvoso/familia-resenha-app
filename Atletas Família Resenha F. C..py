@@ -18,7 +18,7 @@ conn = None
 try:
     conn = st.connection("gsheets", type=GSheetsConnection)
 except Exception as e:
-    st.error(f"Erro ao conectar no Google Sheets: {e}")
+    conn = None
 
 # Busca do arquivo de Logo
 logo_path = None
@@ -34,23 +34,26 @@ st.title("Família Resenha F.C.")
 st.subheader("Gerador Oficial de Carteirinha Virtual de Sócio-Atleta")
 st.write("Preencha as informações abaixo para gerar sua carteirinha e baixar o arquivo PNG!")
 
-# Carregar Fontes TrueType com suporte a acentuação
+# Função Robusta para Carregamento de Fontes com Acentuação
 def load_font(size, bold=False):
     font_paths = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
         "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-        "arial.ttf"
+        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf" if bold else "/usr/share/fonts/truetype/freefont/FreeSans.ttf"
     ]
     for p in font_paths:
         if os.path.exists(p):
-            return ImageFont.truetype(p, size)
+            try:
+                return ImageFont.truetype(p, size)
+            except Exception:
+                continue
     return ImageFont.load_default()
 
-font_title = load_font(30, bold=True)
+font_title = load_font(28, bold=True)
 font_subtitle = load_font(18, bold=True)
 font_label = load_font(18, bold=True)
-font_value = load_font(22, bold=False)
-font_badge = load_font(36, bold=True)
+font_value = load_font(20, bold=False)
+font_badge = load_font(34, bold=True)
 
 # --- FORMULÁRIO DE CADASTRO DO JOGADOR ---
 with st.form("form_carteirinha"):
@@ -80,7 +83,6 @@ if submitted:
         # 1. Salvar dados na Planilha do Google Sheets
         if conn is not None:
             try:
-                # Tenta ler a aba existente
                 existing_data = conn.read(ttl=0)
                 
                 new_row = pd.DataFrame([{
@@ -137,7 +139,7 @@ if submitted:
         # Número da Camisa
         cx, cy, cr = 200, 380, 45
         draw.ellipse([cx - cr, cy - cr, cx + cr, cy + cr], fill=(234, 179, 8), outline=(15, 23, 42), width=3)
-        draw.text((cx - 25, cy - 20), f"#{camisa}", fill=(15, 23, 42), font=font_badge)
+        draw.text((cx - 20, cy - 18), f"#{camisa}", fill=(15, 23, 42), font=font_badge)
 
         # Informações do Jogador
         draw.text((300, 135), f"APELIDO: {apelido.upper()}", fill=(250, 204, 21), font=font_title)
@@ -153,7 +155,7 @@ if submitted:
         bx, by, bw, bh = 40, 475, W - 80, 110
         draw.rectangle([bx, by, bx + bw, by + bh], fill=(30, 41, 59), outline=(51, 65, 85), width=2)
         
-        draw.text((bx + 20, by + 15), f"TEOR ALCOÓLICO NA RESENHA: {teor}%", fill=(250, 204, 21), font=font_label)
+        draw.text((bx + 20, by + 15), f"TEOR ALCOÓLICO NA RESENHA: {teor}% 🍻", fill=(250, 204, 21), font=font_label)
         
         bar_w = int((bw - 40) * (teor / 100.0))
         if bar_w > 0:
