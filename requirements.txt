@@ -1,3 +1,4 @@
 streamlit
 pillow
-streamlit-gsheets
+st-gsheets-connection
+pandas
