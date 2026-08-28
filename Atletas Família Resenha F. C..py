@@ -2,9 +2,8 @@ import streamlit as st
 from PIL import Image, ImageDraw, ImageFont
 import io
 import os
-import pandas as pd
+import requests
 from datetime import datetime
-from streamlit_gsheets import GSheetsConnection
 
 # Configuração da página do App
 st.set_page_config(
@@ -13,15 +12,8 @@ st.set_page_config(
     layout="centered"
 )
 
-# URL Limpa da Planilha do Google Sheets
-SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1GgmKgonnXOQ-jNpciGnxbm1MB25Q5kAMxF279Da9pFU/edit"
-
-# Conexão com Google Sheets
-conn = None
-try:
-    conn = st.connection("gsheets", type=GSheetsConnection)
-except Exception:
-    conn = None
+# URL do Web App do Google Apps Script (Substitua pela sua URL)
+WEB_APP_URL = https://script.google.com/macros/s/AKfycbyIaKpFo3M48uYN-f5FFX6DA10c-OKaQYCE7RpH_tdbPqGSbjmTLiMOI1i-JjBi3zu_tA/exec
 
 # Busca do arquivo de Logo
 logo_path = None
@@ -37,12 +29,11 @@ st.title("Família Resenha F.C.")
 st.subheader("Gerador Oficial de Carteirinha Virtual de Sócio-Atleta")
 st.write("Preencha as informações abaixo para gerar sua carteirinha e baixar o arquivo PNG!")
 
-# Função Robusta para Carregamento de Fontes com Acentuação
+# Carregamento de Fontes
 def load_font(size, bold=False):
     font_paths = [
         "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf",
-        "/usr/share/fonts/truetype/freefont/FreeSansBold.ttf" if bold else "/usr/share/fonts/truetype/freefont/FreeSans.ttf"
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf" if bold else "/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf"
     ]
     for p in font_paths:
         if os.path.exists(p):
@@ -83,30 +74,27 @@ if submitted:
     if not apelido or not camisa:
         st.error("Por favor, preencha pelo menos o Apelido e o Número da Camisa!")
     else:
-        # 1. Salvar dados na Planilha do Google Sheets
-        if conn is not None:
-            try:
-                existing_data = conn.read(spreadsheet=SPREADSHEET_URL, ttl=0)
-                
-                new_row = pd.DataFrame([{
-                    "Data Cadastro": datetime.now().strftime("%d/%m/%Y %H:%M"),
-                    "Nome": nome if nome else "N/I",
-                    "Apelido": apelido,
-                    "Camisa": camisa,
-                    "Nascimento": nascimento if nascimento else "N/I",
-                    "Pé Dominante": pe,
-                    "Cidade UF": cidade_uf,
-                    "Temporada": inicio,
-                    "Teor Alcoólico": f"{teor}%"
-                }])
-                
-                updated_df = pd.concat([existing_data, new_row], ignore_index=True)
-                conn.update(spreadsheet=SPREADSHEET_URL, data=updated_df)
+        # 1. Envio Direto para o Google Sheets via API Web App
+        payload = {
+            "data_cadastro": datetime.now().strftime("%d/%m/%Y %H:%M"),
+            "nome": nome if nome else "N/I",
+            "apelido": apelido,
+            "camisa": camisa,
+            "nascimento": nascimento if nascimento else "N/I",
+            "pe": pe,
+            "cidade_uf": cidade_uf,
+            "temporada": inicio,
+            "teor": f"{teor}%"
+        }
+        
+        try:
+            res = requests.post(WEB_APP_URL, json=payload, timeout=5)
+            if res.status_code == 200:
                 st.success("✅ Atleta registrado com sucesso na planilha do Google Drive!")
-            except Exception as err:
-                st.warning(f"Carteirinha gerada! (Nota ao gravar na planilha: {err})")
-        else:
-            st.info("Carteirinha gerada!")
+            else:
+                st.info("Carteirinha gerada com sucesso!")
+        except Exception:
+            st.info("Carteirinha gerada com sucesso!")
 
         # 2. Gerar Imagem da Carteirinha
         W, H = 1012, 638
@@ -125,7 +113,7 @@ if submitted:
             card.paste(logo_img, (20, 15), logo_img)
             text_start_x = 115
 
-        # Títulos do Cabeçalho
+        # Títulos
         draw.text((text_start_x, 22), "FAMÍLIA RESENHA F.C.", fill=(250, 204, 21), font=font_title)
         draw.text((text_start_x, 65), "CARTEIRINHA VIRTUAL DE SÓCIO-ATLETA", fill=(203, 213, 225), font=font_subtitle)
 
@@ -144,7 +132,7 @@ if submitted:
         draw.ellipse([cx - cr, cy - cr, cx + cr, cy + cr], fill=(234, 179, 8), outline=(15, 23, 42), width=3)
         draw.text((cx - 20, cy - 18), f"#{camisa}", fill=(15, 23, 42), font=font_badge)
 
-        # Informações do Jogador
+        # Dados do Jogador
         draw.text((300, 135), f"APELIDO: {apelido.upper()}", fill=(250, 204, 21), font=font_title)
         draw.text((300, 180), f"NOME: {nome if nome else 'Atleta Resenheiro'}", fill=(226, 232, 240), font=font_value)
         
@@ -154,50 +142,34 @@ if submitted:
         draw.text((620, 240), f"TEMPORADA INÍCIO: {inicio}", fill=(255, 255, 255), font=font_value)
         draw.text((620, 285), f"CIDADE/UF: {cidade_uf}", fill=(255, 255, 255), font=font_value)
 
-        # --- SEÇÃO DO TEOR ALCOÓLICO COM EFEITO 3D ---
+        # Barra do Teor Alcoólico 3D
         bx, by, bw, bh = 40, 470, W - 80, 120
         draw.rectangle([bx, by, bx + bw, by + bh], fill=(30, 41, 59), outline=(51, 65, 85), width=2)
         
-        # Rótulo + Percentual no canto superior direito
         draw.text((bx + 20, by + 12), "TEOR ALCOÓLICO NA RESENHA", fill=(250, 204, 21), font=font_label)
         draw.text((bx + bw - 100, by + 12), f"{teor}%", fill=(250, 204, 21), font=font_label)
         
-        # Trilho de Fundo da Barra (Efeito de Cavidade Interna)
         rx, ry, rw, rh = bx + 20, by + 50, bw - 40, 45
         draw.rectangle([rx, ry, rx + rw, ry + rh], fill=(15, 23, 42), outline=(100, 116, 139), width=2)
         
         bar_w = int((rw - 6) * (teor / 100.0))
         if bar_w > 0:
-            # Definir cores base (Verde / Amarelo / Vermelho)
             if teor < 50:
-                base_color = (34, 197, 94)      # Green
-                light_color = (134, 239, 172)   # Light Green
-                shadow_color = (21, 128, 61)    # Dark Green
+                base_color, light_color, shadow_color = (34, 197, 94), (134, 239, 172), (21, 128, 61)
             elif teor < 80:
-                base_color = (234, 179, 8)      # Yellow
-                light_color = (253, 224, 71)    # Light Yellow
-                shadow_color = (161, 98, 7)     # Dark Yellow
+                base_color, light_color, shadow_color = (234, 179, 8), (253, 224, 71), (161, 98, 7)
             else:
-                base_color = (239, 68, 68)      # Red
-                light_color = (252, 165, 165)   # Light Red
-                shadow_color = (185, 28, 28)    # Dark Red
+                base_color, light_color, shadow_color = (239, 68, 68), (252, 165, 165), (185, 28, 28)
 
-            # Desenha o bloco principal da barra
             bx1, by1 = rx + 3, ry + 3
             bx2, by2 = rx + 3 + bar_w, ry + rh - 3
             draw.rectangle([bx1, by1, bx2, by2], fill=base_color)
             
-            # Realce de Brilho 3D no topo (Metade superior)
             mid_h = (by2 - by1) // 2
             draw.rectangle([bx1, by1, bx2, by1 + mid_h], fill=light_color)
-            
-            # Sombra 3D na parte inferior
             draw.rectangle([bx1, by1 + mid_h, bx2, by2], fill=shadow_color)
-            
-            # Linha de Destaque Interna no topo
             draw.line([(bx1, by1), (bx2, by1)], fill=(255, 255, 255), width=2)
 
-        # Exibição e Download
         st.image(card, caption=f"Carteirinha Virtual - {apelido}", use_container_width=True)
         
         buf = io.BytesIO()
