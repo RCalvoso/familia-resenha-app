@@ -74,7 +74,7 @@ if submitted:
     if not apelido or not camisa:
         st.error("Por favor, preencha pelo menos o Apelido e o Número da Camisa!")
     else:
-        # 1. Envio de Formulário via POST
+        # 1. Envio Form-Urlencoded sem permitir alteração de método em redirecionamento
         payload = {
             "data_cadastro": datetime.now().strftime("%d/%m/%Y %H:%M"),
             "nome": nome if nome else "N/I",
@@ -88,11 +88,14 @@ if submitted:
         }
         
         try:
-            res = requests.post(WEB_APP_URL, data=payload, timeout=10)
-            if "OK" in res.text or res.status_code == 200:
+            # allow_redirects=False impede que o POST vire GET ao redirecionar
+            res = requests.post(WEB_APP_URL, data=payload, allow_redirects=False, timeout=10)
+            
+            # Status 302/200 no Google Apps Script indica envio executado com sucesso
+            if res.status_code in [200, 302]:
                 st.success("✅ Atleta registrado com sucesso na planilha do Google Drive!")
             else:
-                st.warning(f"Carteirinha gerada! (Retorno do Google: {res.text[:50]})")
+                st.warning(f"Carteirinha gerada! (Retorno: Código HTTP {res.status_code})")
         except Exception as e:
             st.warning(f"Carteirinha gerada! (Erro de conexão: {e})")
 
