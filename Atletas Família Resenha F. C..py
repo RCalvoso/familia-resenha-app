@@ -64,7 +64,7 @@ with st.form("form_carteirinha"):
         camisa = st.text_input("Número da Camisa *", placeholder="Ex: 10")
         inicio = st.text_input("Temporada de Início", value="2026")
         pe = st.selectbox("Pé Dominante", ["Destro", "Canhoto", "Ambidestro"])
-        posicao = st.selectbox("Posição no Campo ⚽", ["Goleiro", "Zagueiro", "Lateral", "Volante", "Meio-Campo", "Ponta", "Atacante", "Gandula de Luxo"])
+        posicao = st.selectbox("Posição no Campo ⚽", ["Goleiro", "Zagueiro", "Lateral", "Volante", "Meio-Campo", "Ponta", "Atacante"])
         teor = st.slider("Teor Alcoólico na Resenha (%) 🍻", 0, 100, 75)
 
     foto_file = st.file_uploader("Foto do Atleta (Envie da Galeria ou Tire uma Foto)", type=["jpg", "png", "jpeg"])
@@ -140,12 +140,12 @@ if submitted:
         draw.text((300, 135), f"APELIDO: {apelido.upper()}", fill=(250, 204, 21), font=font_title)
         draw.text((300, 175), f"NOME: {nome if nome else 'Atleta Resenheiro'}", fill=(226, 232, 240), font=font_value)
         
-        draw.text((300, 225), f"POSIÇÃO: {posicao}", fill=(255, 255, 255), font=font_value)
+        draw.text((300, 225), f"POSIÇÃO NO CAMPO: {posicao}", fill=(255, 255, 255), font=font_value)
         draw.text((300, 265), f"PÉ DOMINANTE: {pe}", fill=(255, 255, 255), font=font_value)
         draw.text((300, 305), f"DATA NASC.: {nascimento if nascimento else 'N/I'}", fill=(255, 255, 255), font=font_value)
         
         # Dados do Jogador - Coluna 2
-        draw.text((620, 225), f"CORAÇÃO: {time_coracao if time_coracao else 'Resenha F.C.'}", fill=(255, 255, 255), font=font_value)
+        draw.text((620, 225), f"TIME DO CORAÇÃO: {time_coracao if time_coracao else 'Resenha F.C.'}", fill=(255, 255, 255), font=font_value)
         draw.text((620, 265), f"INÍCIO: {inicio}", fill=(255, 255, 255), font=font_value)
         draw.text((620, 305), f"CIDADE/UF: {cidade_uf}", fill=(255, 255, 255), font=font_value)
 
