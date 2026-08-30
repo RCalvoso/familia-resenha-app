@@ -13,7 +13,7 @@ st.set_page_config(
 )
 
 # URL do Web App do Google Apps Script
-WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwvtTWWcOKX-c9jcBnVAOS2UnkpyE7F6Cqs5AQn0ZkH35AWY_xoWpRyc9_EAQe9OMputw/exec"
+WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyIaKpFo3M48uYN-f5FFX6DA10c-0KaQYCE7RpH_tdbPqGSbjmTLiMOI1i-JjBi3zu_tA/exec"
 
 # Busca do arquivo de Logo
 logo_path = None
@@ -58,11 +58,13 @@ with st.form("form_carteirinha"):
         apelido = st.text_input("Apelido na Resenha *", placeholder="Ex: Brunão Artilheiro")
         nascimento = st.text_input("Data de Nascimento", placeholder="Ex: 15/08/1990")
         cidade_uf = st.text_input("Cidade / UF", value="São Paulo / SP")
+        time_coracao = st.text_input("Time do Coração ❤️", placeholder="Ex: Palmeiras, Corinthians, SPFC, etc.")
         
     with col2:
         camisa = st.text_input("Número da Camisa *", placeholder="Ex: 10")
         inicio = st.text_input("Temporada de Início", value="2026")
         pe = st.selectbox("Pé Dominante", ["Destro", "Canhoto", "Ambidestro"])
+        posicao = st.selectbox("Posição no Campo ⚽", ["Goleiro", "Zagueiro", "Lateral", "Volante", "Meio-Campo", "Ponta", "Atacante", "Gandula de Luxo"])
         teor = st.slider("Teor Alcoólico na Resenha (%) 🍻", 0, 100, 75)
 
     foto_file = st.file_uploader("Foto do Atleta (Envie da Galeria ou Tire uma Foto)", type=["jpg", "png", "jpeg"])
@@ -84,7 +86,9 @@ if submitted:
             "pe": pe,
             "cidade_uf": cidade_uf,
             "temporada": inicio,
-            "teor": f"{teor}%"
+            "teor": f"{teor}%",
+            "posicao": posicao,
+            "time_coracao": time_coracao if time_coracao else "Resenha F.C."
         }
         
         try:
@@ -132,15 +136,18 @@ if submitted:
         draw.ellipse([cx - cr, cy - cr, cx + cr, cy + cr], fill=(234, 179, 8), outline=(15, 23, 42), width=3)
         draw.text((cx - 20, cy - 18), f"#{camisa}", fill=(15, 23, 42), font=font_badge)
 
-        # Dados do Jogador
+        # Dados do Jogador - Coluna 1
         draw.text((300, 135), f"APELIDO: {apelido.upper()}", fill=(250, 204, 21), font=font_title)
-        draw.text((300, 180), f"NOME: {nome if nome else 'Atleta Resenheiro'}", fill=(226, 232, 240), font=font_value)
+        draw.text((300, 175), f"NOME: {nome if nome else 'Atleta Resenheiro'}", fill=(226, 232, 240), font=font_value)
         
-        draw.text((300, 240), f"PÉ DOMINANTE: {pe}", fill=(255, 255, 255), font=font_value)
-        draw.text((300, 285), f"DATA NASC.: {nascimento if nascimento else 'N/I'}", fill=(255, 255, 255), font=font_value)
+        draw.text((300, 225), f"POSIÇÃO: {posicao}", fill=(255, 255, 255), font=font_value)
+        draw.text((300, 265), f"PÉ DOMINANTE: {pe}", fill=(255, 255, 255), font=font_value)
+        draw.text((300, 305), f"DATA NASC.: {nascimento if nascimento else 'N/I'}", fill=(255, 255, 255), font=font_value)
         
-        draw.text((620, 240), f"TEMPORADA INÍCIO: {inicio}", fill=(255, 255, 255), font=font_value)
-        draw.text((620, 285), f"CIDADE/UF: {cidade_uf}", fill=(255, 255, 255), font=font_value)
+        # Dados do Jogador - Coluna 2
+        draw.text((620, 225), f"CORAÇÃO: {time_coracao if time_coracao else 'Resenha F.C.'}", fill=(255, 255, 255), font=font_value)
+        draw.text((620, 265), f"INÍCIO: {inicio}", fill=(255, 255, 255), font=font_value)
+        draw.text((620, 305), f"CIDADE/UF: {cidade_uf}", fill=(255, 255, 255), font=font_value)
 
         # Barra do Teor Alcoólico 3D
         bx, by, bw, bh = 40, 470, W - 80, 120
